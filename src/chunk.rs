@@ -1,9 +1,10 @@
+use crate::error::{HeapError, HeapResult};
 use std::{
-    alloc::{alloc, handle_alloc_error, Layout},
+    alloc::{alloc, Layout},
     fmt::{Debug, Display},
-    mem,
 };
 
+#[derive(Debug)]
 pub struct Chunk {
     pub ptr: Option<*mut u8>,
     pub size: usize,
@@ -12,17 +13,39 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn new(
-        ptr: Option<*mut u8>,
-        size: usize,
-        layout: Option<Layout>,
-        next: Option<Box<Chunk>>,
-    ) -> Self {
-        Self {
-            ptr,
-            size,
-            layout,
-            next,
+    pub fn new(size: usize, layout: Option<Layout>, next: Option<Box<Chunk>>) -> HeapResult<Self> {
+        match layout {
+            Some(user_layout) => {
+                let ptr = unsafe { alloc(user_layout) };
+
+                if ptr.is_null() {
+                    return HeapResult::Err(HeapError::ChunkInitError);
+                }
+
+                HeapResult::Ok(Chunk {
+                    ptr: Some(ptr),
+                    size,
+                    layout: Some(user_layout),
+                    next: None,
+                })
+            }
+            None => match Layout::from_size_align(size, 1) {
+                Ok(validated_layout) => {
+                    let ptr = unsafe { alloc(validated_layout) };
+
+                    if ptr.is_null() {
+                        return HeapResult::Err(HeapError::ChunkInitError);
+                    }
+
+                    HeapResult::Ok(Chunk {
+                        ptr: Some(ptr),
+                        size,
+                        layout: Some(validated_layout),
+                        next: None,
+                    })
+                }
+                Err(e) => HeapResult::Err(HeapError::ChunkLayoutError(e)),
+            },
         }
     }
 
@@ -47,17 +70,18 @@ impl Display for Chunk {
         write!(
             f,
             "Chunk [Address: {:#?}] ==> {} bytes",
-            self.ptr, self.size
+            self.ptr.unwrap(),
+            self.size
         )
     }
 }
 
-impl Debug for Chunk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Chunk [Address: {:#?}] ==> {} bytes",
-            self.ptr, self.size
-        )
-    }
-}
+// impl Debug for Chunk {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "Chunk [Address: {:#?}] ==> {} bytes",
+//             self.ptr, self.size
+//         )
+//     }
+// }
