@@ -2,13 +2,14 @@ use crate::error::{HeapError, HeapResult};
 use std::{
     alloc::{alloc, dealloc, Layout},
     fmt::{Debug, Display},
+    ops::Deref,
 };
 
-#[derive(Debug)]
 pub struct Chunk {
-    pub ptr: Option<*mut u8>,
+    pub ptr: *mut u8,
     pub size: usize,
-    layout: Option<Layout>,
+    pub in_use: bool,
+    layout: Layout,
     pub next: Option<Box<Chunk>>,
 }
 
@@ -23,9 +24,10 @@ impl Chunk {
                 }
 
                 HeapResult::Ok(Chunk {
-                    ptr: Some(ptr),
+                    ptr,
                     size,
-                    layout: Some(user_layout),
+                    in_use: false,
+                    layout: user_layout,
                     next,
                 })
             }
@@ -38,9 +40,10 @@ impl Chunk {
                     }
 
                     HeapResult::Ok(Chunk {
-                        ptr: Some(ptr),
+                        ptr,
                         size,
-                        layout: Some(validated_layout),
+                        in_use: false,
+                        layout: validated_layout,
                         next,
                     })
                 }
@@ -50,26 +53,11 @@ impl Chunk {
     }
 
     pub fn free(&mut self) {
-        unsafe {
-            if let Some(ptr) = self.ptr {
-                dealloc(ptr, self.layout.unwrap())
-            }
-        };
+        unsafe { dealloc(self.ptr, self.layout) };
     }
 
-    pub fn get_layout(&self) -> Option<&Layout> {
-        self.layout.as_ref()
-    }
-}
-
-impl Default for Chunk {
-    fn default() -> Self {
-        Self {
-            ptr: None,
-            size: 0,
-            layout: None,
-            next: None,
-        }
+    pub fn get_layout(&self) -> Layout {
+        self.layout
     }
 }
 
@@ -78,8 +66,25 @@ impl Display for Chunk {
         write!(
             f,
             "Chunk [Address: {:#?}] ==> {} bytes",
-            self.ptr.unwrap(),
-            self.size
+            self.ptr, self.size
         )
+    }
+}
+
+impl Debug for Chunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Chunk [Address: {:#?}] ==> {} bytes",
+            self.ptr, self.size
+        )
+    }
+}
+
+impl Deref for Chunk {
+    type Target = *mut u8;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ptr
     }
 }

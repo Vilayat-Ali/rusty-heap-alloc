@@ -3,7 +3,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum HeapError {
-    #[error("Memory Overflow Error: Allocated {0} bytes but {1} bytes were intended!")]
+    #[error(
+        "Memory Overflow Error: cannot allocate {0} bytes where only {1} bytes are available!"
+    )]
     MemoryOverflow(usize, usize),
     #[error("Memory Underflow Error: allocate memory with capacity >= {0} bytes!")]
     MemoryUnderflow(usize),
@@ -15,6 +17,8 @@ pub enum HeapError {
     ChunkInitError,
     #[error("Chunk Error: failed to initialize chunk due to fault in layout. {0}")]
     ChunkLayoutError(LayoutError),
+    #[error("Input Error: {0} is an invalid input to the function`{1}`")]
+    InvalidInputError(usize, &'static str),
 }
 
 pub enum HeapResult<T> {
