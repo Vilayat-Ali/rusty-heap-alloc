@@ -1,6 +1,8 @@
 pub mod chunk;
 pub mod error;
 
+use std::alloc::dealloc;
+
 use chunk::Chunk;
 
 pub const DEFAULT_HEAP_SIZE: usize = 100; // 100 Bytes
@@ -25,13 +27,13 @@ impl Default for Heap {
 }
 
 impl Heap {
-    pub fn init(space: usize) -> Self {
+    pub fn init(space: Option<usize>) -> Self {
         let mut head: Option<Box<Chunk>> = None;
+        let space = space.unwrap_or(DEFAULT_HEAP_SIZE);
 
         for _ in 0..space {
-            let mut new_chunk = Chunk::new(1, None, None).unwrap();
             let rest_chunks = head.take();
-            new_chunk.next = rest_chunks;
+            let new_chunk = Chunk::new(1, None, rest_chunks).unwrap();
             head = Some(Box::new(new_chunk));
         }
 
@@ -52,10 +54,6 @@ impl Heap {
     }
 
     pub fn calloc(element_size: usize, count: usize) -> *mut u8 {
-        unimplemented!()
-    }
-
-    pub fn free(&mut self) {
         unimplemented!()
     }
 }

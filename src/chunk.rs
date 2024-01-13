@@ -1,6 +1,6 @@
 use crate::error::{HeapError, HeapResult};
 use std::{
-    alloc::{alloc, Layout},
+    alloc::{alloc, dealloc, Layout},
     fmt::{Debug, Display},
 };
 
@@ -26,7 +26,7 @@ impl Chunk {
                     ptr: Some(ptr),
                     size,
                     layout: Some(user_layout),
-                    next: None,
+                    next,
                 })
             }
             None => match Layout::from_size_align(size, 1) {
@@ -41,12 +41,20 @@ impl Chunk {
                         ptr: Some(ptr),
                         size,
                         layout: Some(validated_layout),
-                        next: None,
+                        next,
                     })
                 }
                 Err(e) => HeapResult::Err(HeapError::ChunkLayoutError(e)),
             },
         }
+    }
+
+    pub fn free(&mut self) {
+        unsafe {
+            if let Some(ptr) = self.ptr {
+                dealloc(ptr, self.layout.unwrap())
+            }
+        };
     }
 
     pub fn get_layout(&self) -> Option<&Layout> {
@@ -75,13 +83,3 @@ impl Display for Chunk {
         )
     }
 }
-
-// impl Debug for Chunk {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(
-//             f,
-//             "Chunk [Address: {:#?}] ==> {} bytes",
-//             self.ptr, self.size
-//         )
-//     }
-// }
