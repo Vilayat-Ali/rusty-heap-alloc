@@ -84,8 +84,6 @@ impl Debug for Heap {
             rows
         };
 
-        println!("{:?}", size_arr);
-
         let draw_hr_line = || {
             let mut line = String::from("+");
             for size in size_arr.iter() {
@@ -232,7 +230,7 @@ impl Heap {
             return Err(HeapError::MemoryOverflow(size_in_bytes, self.free_space));
         }
 
-        println!("{}", self.has_available_space_as_chunks(13));
+        self.has_available_space_as_chunks(13);
 
         Ok(Chunk::new(10, None, None).unwrap())
     }
